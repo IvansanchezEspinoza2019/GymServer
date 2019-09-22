@@ -1,10 +1,12 @@
 <?php
+    
     header("Access-Control-Allow-Origin: *");
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST'){
         echo json_encode(array('status'=> false));
         exit;
     }
+
 
 $postdata = file_get_contents("php://input");
 $datos = json_decode($postdata, true);
@@ -25,14 +27,97 @@ switch($datos['funcion']){
     case 'getAllCustomers':
         getAllCustomers();
         break;
+    case 'getForeignData':
+        getForeignData($datos);
+        break;
+    case 'existImg':
+        fileExists2($datos);
+        break;
+    case 'eliminarCliente':
+        eliminarCliente($datos);
+        break;
+    case 'activarCliente':
+        activarCliente($datos);
+        break;
+    case 'getForeignDataModif':
+        getForeignDataModif($datos);
+        break;
     default:
         echo json_encode("-1");
 
 
 }
+
+function getForeignDataModif($datos){
+    include "Conexion.php";
+    $consulta = "select user from access where id=".$datos['id_access']." Union select nombre from colonia where id=".$datos['id_col']." Union select codigo from cp where id=".$datos['id_cp']." Union select password from access where id=".$datos['id_access']."  Union select nombre from cliente where id_cliente=".$datos['id_cliente']." Union select apellido_p from cliente where id_cliente=".$datos['id_cliente']." Union select apellido_m from cliente where id_cliente=".$datos['id_cliente']." ;";
+    $get = $db->query($consulta);
+    if($get){
+        $data= array();
+        while($res = mysqli_fetch_assoc($get)):
+            $data[]=$res;
+        endwhile;
+        echo json_encode($data);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+
+
+}
+function eliminarCliente($datos){
+    include "Conexion.php";
+    $consulta = "update cliente set activo=0 where id_cliente=".$datos['id_cliente'].";";
+    $elim = $db->query($consulta);
+    if($elim){
+        echo json_encode("exito");
+    }else{
+        echo json_encode("-1");
+    }
+}
+function activarCliente($datos){
+    include "Conexion.php";
+    $consulta = "update cliente set activo=1 where id_cliente=".$datos['id_cliente'].";";
+    $elim = $db->query($consulta);
+    if($elim){
+        echo json_encode("exito");
+    }else{
+        echo json_encode("-1");
+    }
+}
+function fileExists2($datos) {
+    $filePath='C:\xampp\htdocs\gymdb\imgs\customers\\'.$datos['path'];
+    if(is_file($filePath) && file_exists($filePath)){
+        echo json_encode("existe");
+    }
+    else{
+        echo json_encode("no existe");
+    }
+
+} 
+
+function getForeignData($datos){
+    include "Conexion.php";
+    $consulta = "select user from access where id=".$datos['id_access']." Union select nombre from colonia where id=".$datos['id_col']." Union select codigo from cp where id=".$datos['id_cp'].";";
+    $get = $db->query($consulta);
+    if($get){
+        $data= array();
+        while($res = mysqli_fetch_assoc($get)):
+            $data[]=$res;
+        endwhile;
+        echo json_encode($data);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+
+
+
+}
+
 function getAllCustomers(){
     include "Conexion.php";
-    $consulta = "Select foto,calle,numero_calle,telefono,fecha_nacimiento,fecha_ingreso,id_cp,id_colonia,id_access,activo,numero_interior,genero,CONCAT(apellido_p,' ',apellido_m,' ',nombre) as Nombre from cliente;";
+    $consulta = "Select id_cliente,foto,calle,numero_calle,telefono,fecha_nacimiento,fecha_ingreso,id_cp,id_colonia,id_access,activo,numero_interior,genero,CONCAT(apellido_p,' ',apellido_m,' ',nombre) as Nombre from cliente;";
     $get = $db->query($consulta);
     if($get){
         $clientes=array();
