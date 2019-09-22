@@ -7,7 +7,6 @@
         exit;
     }
 
-
 $postdata = file_get_contents("php://input");
 $datos = json_decode($postdata, true);
 
@@ -42,11 +41,104 @@ switch($datos['funcion']){
     case 'getForeignDataModif':
         getForeignDataModif($datos);
         break;
+    case 'actualizarCliente':
+        modifCliente($datos);
+        break;
     default:
         echo json_encode("-1");
-
-
 }
+
+
+/////////////////  FUNCIONES MODIFICAR CLIENTE /////////////////////////////
+
+// verifica si se modifico el usuario de un cliente
+function verifSelfUser($datos){
+    include "Conexion.php";
+    $consulta = "select user from access where id=".$datos['id_access'].";";
+    $get = $db->query($consulta);
+    if($get){
+        if($res = mysqli_fetch_assoc($get)){
+            if($res['user']==$datos['user']){
+                return "0";   // no cambio su id
+            }else{
+                return "1";  // cambio su id
+            }
+        }else{
+            return "0";
+        }
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+    return "0";
+}
+function actUser($datos){
+    include "Conexion.php";
+    $f = "update access set user='".$datos['user']."', password='".$datos['password']."' where id=".$datos['id_access'].";";
+    $d = $db->query($f);
+    if($d){
+        
+    }
+    else{
+        
+    }
+}
+
+function insertModific($datos,$cp,$col){
+    include "Conexion.php";
+    $f = "update cliente set nombre='".$datos['nombre']."', apellido_p='".$datos['apellidoP']."', apellido_m='".$datos['apellidoM']."', foto='".$datos['foto']."', calle='".$datos['calle']."', numero_calle='".$datos['numero']."', telefono='".$datos['telefono']."',id_cp=".$cp.",id_colonia=".$col.", fecha_nacimiento='".$datos['fechanac']."', numero_interior='".$datos['numeroint']."', genero='".$datos['gender']."' where id_cliente=".$datos['id_cliente'].";";
+    $d = $db->query($f);
+    if($d){
+        echo json_encode("exito");
+    }
+    else{
+        echo json_encode("-1");
+    }
+}
+function getKeysMidif($datos){
+    $valCp=getCP($datos);  //verifica si ya existe el cp
+    $col = "0";
+    if($valCp=="0"){  // si no existe lo inserta
+        $cp = setCP($datos);
+     }
+     else{      
+        $cp = $valCp['id'];  // si existe recupera la llave primaria
+        
+    }
+    $valCol=getCol($datos);   //verifica si existe la colonia
+    $col = "0";
+    if($valCol=="0"){ //si no, la inserta
+        $col = setCol($datos);
+     }
+    else{
+        $col = $valCol['id'];  //si ya existe obtiene su llave primaria
+    }
+    
+    if($cp!="0" & $col!="0" ){  /// si las llaves son distintas de cero
+        insertModific($datos,$cp,$col);
+    }else{
+        echo json_encode("-1"); 
+    }
+}
+
+function modifCliente($datos){  
+    $verif_self_user = verifSelfUser($datos);
+    if($verif_self_user=="0"){  /// si es cero, no se modificó su usuario
+        getKeysMidif($datos);
+        actUser($datos);
+    }
+    else{ // si lo modifico
+        $valAccesso = getAcceso($datos);    //verifica si el id es repetido
+        $accesso="0";
+        if($valAccesso=="0"){   //si no existe ese usuario
+            getKeysMidif($datos);
+            actUser($datos);
+         }else{  /// si el id es repetido
+            echo json_encode("id_rep");
+        }
+    } 
+}
+////////////////// FIN MODIFICAR CLIENTE  ///////////////////////
 
 function getForeignDataModif($datos){
     include "Conexion.php";
@@ -110,9 +202,6 @@ function getForeignData($datos){
     else{
         echo json_encode(mysqli_error($db));
     }
-
-
-
 }
 
 function getAllCustomers(){
@@ -132,10 +221,6 @@ function getAllCustomers(){
     else{
         echo json_encode(mysqli_error($db));
     }
-
-
-
-
 }
 function insertCliente($datos1,$cp1,$col1,$accesso1)
 {
@@ -163,7 +248,7 @@ function addCliente($datos)
         $accesso = setAcceso($datos);  //inserta los nuevos datos
         $valCp=getCP($datos);  //verifica si ya existe el cp
         $cp ="0";
-        if($valCp=="0"){  // si no existe lo inerta
+        if($valCp=="0"){  // si no existe lo inserta
             $cp = setCP($datos);
          }
          else{      
@@ -225,14 +310,17 @@ function getCP($datos)
     $f = "select id from cp where codigo='".$datos['cp']."';";
     $d = $db->query($f);
     if($d){
+        $f="0";
         if($res = mysqli_fetch_assoc($d)){
             return $res;
+        }else{
+            return $f;
         }
     }
     else{
         echo json_encode(mysqli_error($db));
     }
-    return "0";
+    return $f;
 }
 function setCP($datos)
 {
@@ -256,6 +344,8 @@ function getCol($datos)
     if($d){
         if($res = mysqli_fetch_assoc($d)){
             return $res;
+        }else{
+            return "0";
         }
     }
     else{
