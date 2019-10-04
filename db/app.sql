@@ -33,23 +33,16 @@ create table proveedor(
     correo VARCHAR(50),
     telefono VARCHAR(13)
 );
-create table estado(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    estado char
-);
+
 
 create table paquete(
     id INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(12),
     descripcion VARCHAR(50),
-    precio FLOAT
+    precio VARCHAR(10),
+    duracion INT,
+    activo TINYINT
 );
-
-create table fecha(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    fecha DATE
-);
-
 
 CREATE TABLE cliente(
     id_cliente INT PRIMARY KEY AUTO_INCREMENT,
@@ -73,7 +66,8 @@ CREATE TABLE cliente(
     fecha_nacimiento DATE NOT NULL, 
     activo BOOLEAN NOT NULL,
     numero_interior VARCHAR(8) NULL,
-    genero CHAR NOT NULL
+    genero CHAR NOT NULL,
+    ultimo_pago INT
 );
 
 create table asistencia(
@@ -83,7 +77,7 @@ create table asistencia(
     REFERENCES fecha(id),
     id_cliente INT,
     FOREIGN KEY (id_cliente)
-    REFERENCES cliente(id)
+    REFERENCES cliente(id_cliente)
 );
 
 CREATE TABLE empleado(
@@ -116,10 +110,12 @@ CREATE TABLE empleado(
 
 CREATE TABLE cliente_paquete(
     id_pago INT PRIMARY KEY AUTO_INCREMENT,  
-    fecha_pago DATE,  
+    fecha_pago DATE,
+    fecha_vencimiento DATE,
     id_cliente INT,
     id_paquete INT,
-    monto FLOAT,
+    monto VARCHAR(10),
+    modo VARCHAR(25),
     
     FOREIGN KEY (id_cliente)
     REFERENCES cliente(id_cliente),
@@ -137,17 +133,8 @@ CREATE TABLE paquete_aparato(
     REFERENCES paquete(id)
 );
 
-CREATE TABLE producto(
-id INT PRIMARY KEY AUTO_INCREMENT,    
-    id_empleado INT,
-    FOREIGN KEY (id_empleado)
-    REFERENCES empleado(id_empleado),
-    id_producto INT,
-    FOREIGN KEY (id_producto)
-    REFERENCES producto(id)
-);
 
-CREATE TABLE empleado_producto(
+CREATE TABLE producto(
     id_producto INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(60) NOT NULL,
     descripcion VARCHAR(90) NOT NULL,
@@ -159,15 +146,25 @@ CREATE TABLE empleado_producto(
     REFERENCES proveedor(id)
 );
 
-CREATE TABLE informacion(
-    id_producto INT PRIMARY KEY AUTO_INCREMENT,
-    nombre VARCHAR(60) NOT NULL,
-    id_categoria_ap INT,
-    FOREIGN KEY (id_categoria_ap)
-    REFERENCES aparato(id),
-    id_estado INT,
-    FOREIGN KEY (id_estado)
-    REFERENCES estado(id)
+CREATE TABLE empleado_producto(
+    id INT PRIMARY KEY AUTO_INCREMENT,    
+    id_empleado INT,
+    FOREIGN KEY (id_empleado)
+    REFERENCES empleado(id_empleado),
+    id_producto INT,
+    FOREIGN KEY (id_producto)
+    REFERENCES producto(id_producto)
 );
+
+
+CREATE TABLE info_aparato(
+    id INT PRIMARY KEY AUTO_INCREMENT,    
+    id_categoria INT,
+    estado CHAR,
+    descripcion VARCHAR(100),
+    FOREIGN KEY (id_categoria)
+    REFERENCES aparato(id)
+);
+
 
 
