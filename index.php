@@ -108,9 +108,94 @@ switch($datos['funcion']){
     case 'addCambioPack':
         addCambioPack($datos);
         break;
+    // emleado
+    case 'addEmpleado':
+        addEmpleado($datos);
+        break;
     default:
         echo json_encode("-1");
 }
+
+//////////////////  AGREGAR EMPLEADO    //////////////////////
+
+function insertEmpleado($datos1,$cp1,$col1,$accesso1,$puesto){  // recibe los datos y las llaves foráneas
+    include "Conexion.php";
+    $f = "insert into empleado values(NULL,'".$datos1['nombre']."','".$datos1['apellidoP']."','".$datos1['apellidoM']."','".$datos1['foto']."','".$datos1['calle']."','".$datos1['numero']."','".$datos1['telefono']."',CURDATE(),".$cp1.",".$col1.",".$accesso1.",".$puesto.",'".$datos1['fechanac']."',1,'".$datos1['numeroint']."','".$datos1['gender']."');";
+    
+    $d = $db->query($f);
+    if($d){
+        echo json_encode("exito");
+    }
+    else{
+        echo json_encode("-1");
+    }
+
+}
+
+function setPuesto($datos){  /// funcion que inserta un nuevo puesto en la base de datos
+    include "Conexion.php";
+    $f = "insert into puesto values(NULL,'".$datos['otro']."',".$datos['sueldo'].");";
+    $d = $db->query($f);
+    if($d){
+        return mysqli_insert_id($db);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+function addEmpleado($datos){
+    $accesso="0";
+    $valAccesso="0";
+    if($datos['admin']=='1'){       // si tiene permiso de administrador
+        $valAccesso = getAcceso($datos);    //verifica si el id es repetido
+        if($valAccesso=="0"){// si no es repetido
+            $accesso = setAcceso($datos);  //inserta los nuevos datos y obtiene el id 
+        }
+    }
+    else{
+        $accesso = "NULL";// si no tiene cuenta, la llave foranea de accesso será nula
+    }
+    if($valAccesso=="0"){          //si no existe ese usuario
+        $puesto = $datos['puesto']; // id puesto
+
+        if($datos['puesto']=="0"){  //si es un nuevo puesto de trabajo
+            $puesto = setPuesto($datos); // inserta el nuevo puesto y obtiene su id
+        }
+        
+        $valCp=getCP($datos);  //verifica si ya existe el cp
+        $cp ="0";
+        if($valCp=="0"){  // si no existe lo inserta
+            $cp = setCP($datos);    // recupera la llave primaria
+         }
+         else{      
+            $cp = $valCp['id'];  // si existe recupera la llave primaria
+        }
+
+        $valCol=getCol($datos);   //verifica si existe la colonia
+        $col = "0";
+        if($valCol=="0"){ //si no, la inserta
+            $col = setCol($datos); // recupera la llave primaria
+        }
+        else{
+            $col = $valCol['id'];  //si ya existe obtiene su llave primaria
+        }
+
+        if($cp!="0" & $col!="0" & $accesso!="0"){  /// si las llaves son distintas de cero
+            insertEmpleado($datos,$cp,$col,$accesso,$puesto); 
+         }
+         else{
+             echo json_encode("-1"); 
+            } 
+    }
+    else{  /// si el id es repetido
+        echo json_encode("id_rep");   // responde un mensaje de error
+    }  
+}
+
+/////////////////   FIN AGREGAR EMPLEADO   ////////////////////////////
+
+
 // funcion que obbtiene los puestos
 
 function getPuestos(){
@@ -127,9 +212,8 @@ function getPuestos(){
        echo json_encode($puestos);
     }
     else{
-        echo json_encode("pnja");
+        echo json_encode("-1");
     }
-
 }
 
 ///// modificar aparato
