@@ -29,11 +29,9 @@ create table aparato(
 
 create table proveedor(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    nombre VARCHAR(20),
-    correo VARCHAR(50),
-    telefono VARCHAR(13)
+    nombre VARCHAR(20)
+    
 );
-
 
 create table paquete(
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -68,6 +66,10 @@ CREATE TABLE cliente(
     numero_interior VARCHAR(8) NULL,
     genero CHAR NOT NULL,
     ultimo_pago INT
+);
+CREATE TABLE fecha(
+    id INT PRIMARY KEY AUTO_INCREMENT,    
+    fecha DATE
 );
 
 create table asistencia(
@@ -123,14 +125,14 @@ CREATE TABLE cliente_paquete(
     REFERENCES paquete(id)
 );
 
-CREATE TABLE paquete_aparato(
-    id_paquete_a INT PRIMARY KEY AUTO_INCREMENT,    
-    id_categoria_aparato INT,
-    FOREIGN KEY (id_categoria_aparato)
+CREATE TABLE admin_aparato(
+    id INT PRIMARY KEY AUTO_INCREMENT,    
+    id_aparato INT,
+    FOREIGN KEY (id_aparato)
     REFERENCES aparato(id),
-    id_paquete INT,
-    FOREIGN KEY (id_paquete)
-    REFERENCES paquete(id)
+    id_admin INT,
+    FOREIGN KEY (id_admin)
+    REFERENCES empleado(id_empleado)
 );
 
 
@@ -138,8 +140,8 @@ CREATE TABLE producto(
     id_producto INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(60) NOT NULL,
     descripcion VARCHAR(90) NOT NULL,
-    precio_entrada VARCHAR(25) NOT NULL,
-    precio_salida VARCHAR(25) NOT NULL,
+    precio_entrada FLOAT NOT NULL,
+    precio_salida FLOAT NOT NULL,
     disponibles INT NOT NULL,
     id_proveedor INT,
     FOREIGN KEY (id_proveedor)
@@ -165,6 +167,5 @@ CREATE TABLE info_aparato(
     FOREIGN KEY (id_categoria)
     REFERENCES aparato(id)
 );
-
 
 

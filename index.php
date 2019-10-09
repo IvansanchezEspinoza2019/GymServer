@@ -262,7 +262,7 @@ function modifEmpleado($datos){
              //crea nueva cuenta
             $valAccesso= getAcceso($datos);   // verifica si ya existe el usuario
             if($valAccesso=="0"){   //si no existe ese usuario
-                $id_cuenta = createAcount($datos,"3");      // crea cuenta de administrador y recupera el id
+                $id_cuenta = createAcount($datos,"2");      // crea cuenta de administrador y recupera el id
                 $datos['id_access']=$id_cuenta; // asigna el campo id_access con la llave id_cuenta
                 
                 //actualiza
@@ -400,7 +400,7 @@ function addEmpleado($datos){
     if($datos['admin']=='1'){       // si tiene permiso de administrador
         $valAccesso = getAcceso($datos);    //verifica si el id es repetido
         if($valAccesso=="0"){// si no es repetido
-            $accesso = setAcceso($datos,"3");  //inserta los nuevos datos y obtiene el id, se manda por parametro el tipo de cuenta
+            $accesso = setAcceso($datos,"2");  //inserta los nuevos datos y obtiene el id, se manda por parametro el tipo de cuenta
         }
     }
     else{
@@ -898,6 +898,9 @@ function login($datos){
     if($d){
         if($res =mysqli_fetch_assoc($d)){
             $var = $res;
+            //$id_acceso=$tes['id'];
+           // if$var['tipo'=="2"]
+           // guncionx($id_accesso);
             echo json_encode($var);
         }
         else{
