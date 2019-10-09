@@ -108,13 +108,263 @@ switch($datos['funcion']){
     case 'addCambioPack':
         addCambioPack($datos);
         break;
-    // emleado
+
+    // empleado
     case 'addEmpleado':
         addEmpleado($datos);
         break;
+    case 'getAllEmployees':
+        getAllEmployees($datos);
+        break;
+    case 'activarEmpleado':
+        activarEmpleado($datos);
+        break;
+    case 'eliminarEmpleado':
+        eliminarEmpleado($datos);
+        break;
+    case 'getAccesoEmployee';
+        getAccesoEmployee($datos);
+        break;
+    case 'actualizarEmpleado':
+        modifEmpleado($datos);
+        break;
+
+
+    //ASISTENCIA
+    case 'getAsistToday':
+        getAsistToday($datos);
+        break;
+
+    case 'asistencia':
+        asistencia($datos);
+        break;
+        
     default:
         echo json_encode("-1");
 }
+/////////////////   MODIFICAR EMPLEADO   ////////////////////////
+function insertModifEmpleado($datos1,$cp1,$col1,$accesso1,$puesto){
+    include "Conexion.php";
+    $f = "update empleado set nombre='".$datos1['nombre']."',apellido_p='".$datos1['apellidoP']."',apellido_m='".$datos1['apellidoM']."',
+    foto='".$datos1['foto']."',calle='".$datos1['calle']."',numero_calle='".$datos1['numero']."',telefono='".$datos1['telefono']."',
+    id_cp=".$cp1.",id_colonia=".$col1.",id_acceso=".$accesso1.",id_puesto=".$puesto.",fecha_nacimiento='".$datos1['fechanac']."',
+    activo=1,numero_interior='".$datos1['numeroint']."',genero='".$datos1['gender']."' where id_empleado=".$datos1['id_empleado'].";";
+    
+    $d = $db->query($f);
+    if($d){
+        echo json_encode("exito");
+    }
+    else{
+        echo json_encode("-1");
+    }
+}
+
+// elimina un usuario ///
+function deleteUser($llave){
+    include "Conexion.php";
+    $f = "delete from access where id=".$llave.";";
+    $d = $db->query($f);
+    if($d){
+        
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}
+function actualizarEmpleado($datos){
+        $accesso = $datos['id_access'];
+        $puesto = $datos['puesto']; // id puesto
+
+        if($datos['puesto']=="0"){  //si es un nuevo puesto de trabajo
+            $puesto = setPuesto($datos); // inserta el nuevo puesto y obtiene su id
+        }
+        
+        $valCp=getCP($datos);  //verifica si ya existe el cp
+        $cp ="0";
+        if($valCp=="0"){  // si no existe lo inserta
+            $cp = setCP($datos);    // recupera la llave primaria
+         }
+         else{      
+            $cp = $valCp['id'];  // si existe recupera la llave primaria
+        }
+
+        $valCol=getCol($datos);   //verifica si existe la colonia
+        $col = "0";
+        if($valCol=="0"){ //si no, la inserta
+            $col = setCol($datos); // recupera la llave primaria
+        }
+        else{
+            $col = $valCol['id'];  //si ya existe obtiene su llave primaria
+        }
+
+        if($cp!="0" & $col!="0" & $accesso!="0"){  /// si las llaves son distintas de cero
+            insertModifEmpleado($datos,$cp,$col,$accesso,$puesto); 
+         }
+         else{
+             echo json_encode("-1"); 
+        } 
+   
+}
+
+// verifica si un empleado tiene previa cuenta en el sistema ///
+/*function existAcount($datos){
+    include "Conexion.php";
+    $f = "select * from access where id=".$datos['id_access'].";";
+    $get = $db->query($f);
+    if($get){
+        if($res = mysqli_fetch_assoc($get)){  // verifica si hay un registro con ese id
+            return "1"; // si existe
+        }
+        else{
+            return "0";    // no existe
+        }
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}*/
+
+// crea una cuenta nueva ///
+function createAcount($datos,$tipo){
+    include "Conexion.php";
+    $f = "insert into access values(NULL,'".$datos['user']."','".$datos['password']."','".$tipo."');";
+    $d = $db->query($f);
+    if($d){
+        return mysqli_insert_id($db);
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}
+
+// funcion previa a insertar la actualizacion del empleado, verifica ciertas validaciones
+function modifEmpleado($datos){
+    $valAccesso="0";
+    
+    if($datos['admin']=="1"){       // administrador
+        if($datos['id_access']){   // verifica si ya tiene previa cuenta
+            $verif_user= verifSelfUser($datos);    //verifica si el empleado tiene cuenta previa, si su usuario es igual o si cambio su usuario
+            if($verif_user=="1"){// si cambio su usuario (ya tenia cuenta previa) 
+                $valAccesso = getAcceso($datos);    //verifica si el id nuevo ya esta en el sistema
+                if($valAccesso=="0"){   //si no existe ese usuario, entonces se hará la actualizacion
+                    //actualiza
+                    actUser($datos);        // actualiza el usuario del empleado
+                    actualizarEmpleado($datos);    /// llama a la funcion que actualiza los datos del empleado
+                 }else{  /// si el id es repetido
+                    echo json_encode("id_rep"); // ERROR
+                }
+            }elseif($verif_user=="0"){           // si no cambio su usuario(ya tenia cuenta previa), es decir si es el mismo usuario
+                //actualiza
+                actualizarEmpleado($datos);/// llama a la funcion que actualiza los datos
+            }
+        }
+        else{   // si el epleado no tenia cuenta previa
+             //crea nueva cuenta
+            $valAccesso= getAcceso($datos);   // verifica si ya existe el usuario
+            if($valAccesso=="0"){   //si no existe ese usuario
+                $id_cuenta = createAcount($datos,"3");      // crea cuenta de administrador y recupera el id
+                $datos['id_access']=$id_cuenta; // asigna el campo id_access con la llave id_cuenta
+                
+                //actualiza
+               actualizarEmpleado($datos);    /// llama a la funcion que actualiza los datos del empleado
+             }else{  /// si el id es repetido
+                echo json_encode("id_rep"); // ERROR
+            }
+        }
+    }
+    else{           // si el empleado no va a tener cuenta de administrador
+        if($datos['id_access']){
+
+            $llave = $datos['id_access'];
+            $datos['id_access']="NULL";          // se pone nulo ya que no tendrá cuenta 
+       
+            actualizarEmpleado($datos);  // actualiza los datos del empleado
+            deleteUser($llave); // elimina la cuenta del empleado
+            
+          
+        }else{   // si no hubo cambio es decir, antes no tenia cuenta y ahora tampoco creará cuenta
+            $datos['id_access']="NULL";          // se pone nulo ya que no tendrá cuenta 
+            actualizarEmpleado($datos);
+        }
+          
+    }  
+}
+
+/////////////   FIN MODIFICAR EMPLEADO   ///////////////////////
+
+
+
+
+
+function getAccesoEmployee($datos){
+    include "Conexion.php";
+    $consulta = "select user,password from access where id=".$datos['id_access'].";";
+    $get = $db->query($consulta);
+    if($get){
+        if($res =mysqli_fetch_assoc($get)){
+            $var = $res;
+            echo json_encode($var);
+        }
+        else{
+            echo json_encode("-1");
+        }
+    }else{
+        echo json_encode("-1");
+    }
+
+}
+
+/// ELIMINA CLIENTE ////
+function eliminarEmpleado($datos){
+    include "Conexion.php";
+    $consulta = "update empleado set activo=0 where id_empleado=".$datos['id_empleado'].";";
+    $elim = $db->query($consulta);
+    if($elim){
+        echo json_encode("exito");
+    }else{
+        echo json_encode("-1");
+    }
+
+}
+
+
+// ACTIVA UN CLIENTE ///
+function activarEmpleado($datos){
+    include "Conexion.php";
+    $consulta = "update empleado set activo=1 where id_empleado=".$datos['id_empleado'].";";
+    $elim = $db->query($consulta);
+    if($elim){
+        echo json_encode("exito");
+    }else{
+        echo json_encode("-1");
+    }
+
+
+}
+
+
+// obtiene todos los datos de empleado
+function getAllEmployees($datos){
+    include "Conexion.php";
+    $consulta = "Select i.id_empleado,i.nombre,i.apellido_p,i.apellido_m,i.foto,i.calle,i.numero_calle,i.telefono,i.fecha_nacimiento,
+    i.fecha_ingreso,i.id_cp,id_colonia,i.id_acceso,i.id_puesto,i.activo,i.numero_interior,i.genero,CONCAT(i.apellido_p,' ',i.apellido_m,' ',i.nombre) as Nombre
+    ,i3.codigo,i4.nombre as colonia,i5.id as id_puesto,i5.puesto,i5.sueldo from empleado i inner join cp i3 on i.id_cp=i3.id inner join colonia i4 on i.id_colonia=i4.id inner join puesto i5 on i.id_puesto=i5.id;";
+    $get = $db->query($consulta);
+    if($get){
+        $empleados=array();
+        $resultado=array();
+        
+        while($res = mysqli_fetch_assoc($get)):
+            $resultado[]=$res;
+        endwhile;
+        $empleados['empleados']=$resultado;
+        echo json_encode($empleados);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
 
 //////////////////  AGREGAR EMPLEADO    //////////////////////
 
@@ -150,7 +400,7 @@ function addEmpleado($datos){
     if($datos['admin']=='1'){       // si tiene permiso de administrador
         $valAccesso = getAcceso($datos);    //verifica si el id es repetido
         if($valAccesso=="0"){// si no es repetido
-            $accesso = setAcceso($datos);  //inserta los nuevos datos y obtiene el id 
+            $accesso = setAcceso($datos,"3");  //inserta los nuevos datos y obtiene el id, se manda por parametro el tipo de cuenta
         }
     }
     else{
@@ -325,11 +575,12 @@ function verifSelfUser($datos){
                 return "1";  // cambio su id
             }
         }else{
-            return "0";
+            return "2"; // si no tiene cuenta
         }
     }
     else{
         echo json_encode(mysqli_error($db));
+        //return "2";
     }
     return "0";
 }
@@ -515,7 +766,7 @@ function addCliente($datos)
     $accesso="0";
     if($valAccesso=="0"){           //si no existe ese usuario
 
-        $accesso = setAcceso($datos);  //inserta los nuevos datos
+        $accesso = setAcceso($datos,"1");  //inserta los nuevos datos
         $valCp=getCP($datos);  //verifica si ya existe el cp
         $cp ="0";
         if($valCp=="0"){  // si no existe lo inserta
@@ -561,10 +812,10 @@ function getAcceso($datos)
     }
     return "0";
 }
-function setAcceso($datos)
+function setAcceso($datos,$tipo)
 {
     include "Conexion.php";
-    $f = "insert into access values(NULL,'".$datos['user']."','".$datos['password']."','1');";
+    $f = "insert into access values(NULL,'".$datos['user']."','".$datos['password']."','".$tipo."');";
     $d = $db->query($f);
     if($d){
         return mysqli_insert_id($db);
@@ -1154,4 +1405,140 @@ function getNombrePaquete($datos){
     return "0";
 }
 //FIN EXTRA
+
+
+//ASISTENCIA
+
+function asistencia($datos){   
+    $validation = getValidUserAsist($datos);
+ 
+    if($validation == "0"){
+        echo json_encode("Cliente Invalido");
+    }
+    else if($validation['activo'] == 0){
+        echo json_encode("Cliente Inactivo");
+    }
+    else if($validation['ultimo_pago'] == ""){
+        echo json_encode("Cliente Pago");
+    }
+    else{
+        validationDate($datos);
+    }
+}
+
+function getValidUserAsist($datos){
+    include "Conexion.php";
+    $f = "select activo, ultimo_pago, CONCAT(apellido_p,' ',apellido_m,' ',nombre) as name from cliente where id_cliente='".$datos['id_usuario']."';";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            return $res;
+        }
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+    return "0";
+}
+
+function validationDate($datos){   
+    $validation = gDate();
+    
+    if($validation == "0"){
+        sDate($datos);
+    }
+    else{
+        insertAsistencia($datos);
+    }
+}
+
+function gDate(){
+    include "Conexion.php";
+    $f = "select id from FECHA where fecha = CURDATE();";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            return $res;
+        }
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+    return "0";
+}
+
+function sDate($datos){
+    include "Conexion.php";
+   $f = "insert into fecha (fecha) values(CURDATE());";
+    $d = $db->query($f);
+    if($d){
+        insertAsistencia($datos);
+    }
+    else{
+        echo json_encode("Error");
+    }
+    mysqli_close($db);  
+}
+
+function insertAsistencia($datos){
+    $validation = gDate();
+    include "Conexion.php";
+    
+   $f = "insert into asistencia (id_fecha, id_cliente) values ('".$validation['id']."' , '".$datos['id_usuario']."');";
+    $d = $db->query($f);
+    if($d){
+       resPay($datos);
+    }
+    else{
+        echo json_encode("Error");
+    }
+    mysqli_close($db); 
+}
+
+function resPay($datos){
+    
+    include "Conexion.php";
+    $validation = getValidUserAsist($datos);
+    $validation = $validation['ultimo_pago'];
+    $var = array();
+    
+    $f = "select * from CLIENTE_PAQUETE where id_pago = '".$validation."';";
+    $d = $db->query($f);
+    if($d){
+         while($res = mysqli_fetch_assoc($d)):
+            $var[] = $res;
+
+        endwhile;
+        echo json_encode($var);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+    return "0";
+
+}
+
+function getAsistToday(){
+    include "Conexion.php";
+
+    $date = gDate();
+        
+    $consulta = "Select cliente.activo, cliente_paquete.fecha_vencimiento, concat(nombre, ' ', apellido_p, ' ', apellido_m) as name from asistencia inner join cliente on asistencia.id_cliente = cliente.id_cliente inner join cliente_paquete on cliente.ultimo_pago = cliente_paquete.id_pago where asistencia.id_fecha = '".$date['id']."';";
+    $get = $db->query($consulta);
+    if($get){
+        $asistencia=array();
+        $asistencia2=array();
+        
+        while($res = mysqli_fetch_assoc($get)):
+            $asistencia2[]=$res;
+        endwhile;
+        $asistencia['asistencia']=$asistencia2;
+        echo json_encode($asistencia);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+//FIN ASISTENCIA
 ?>
