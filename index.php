@@ -47,6 +47,8 @@ switch($datos['funcion']){
     case 'actualizarCliente':
         modifCliente($datos);
         break;
+
+    //aparatos
     case 'getCategoria':
         getCategorias();
         break;
@@ -59,10 +61,13 @@ switch($datos['funcion']){
     case 'modifAparato':
         modifAparato($datos);
         break;
+    case 'updateAdminAparato':
+        updateAdminAparato($datos);
+        break;
     case 'getPuestos':
         getPuestos();
         break;
-
+    
      // PAGOS
     case 'addPago':
         addPago($datos);
@@ -466,18 +471,54 @@ function getPuestos(){
     }
 }
 
-///// modificar aparato
+// funcion que verifica si determinada administrador modificó el mismo aparato previamente en el mismo dia
+function verifSameDate_Admin($datos){
+    include "Conexion.php";
+    $consulta = "SELECT * FROM admin_aparato WHERE (id_admin = ".$datos['id_admin']." AND id_aparato = ".$datos['id']." AND fecha=CURDATE() AND accion='2');";
+    $get = $db->query($consulta);
+    if($get){
+       if($res = mysqli_fetch_assoc($get)){
+            return "1"; // un mismo admin ya ha modificado el mismo aparato, el mismo dia 
+        }
+        else{
+            return "0";  // el admin no habia modificado el mismo aparato el mismo dia
+        }
+    }
+    else{
+       return "0";
+    }  
+
+}
+// funcion que registra a los administradores que modifican o agregan nuevos aparatos y las fechas en que lo hicieron
+function updateAdminAparato($datos,$id_aparato){
+    include "Conexion.php";
+    $consulta = "insert into admin_aparato values(NULL,".$id_aparato.",".$datos['id_admin'].",CURDATE(),'".$datos['accion']."');";
+    $get = $db->query($consulta);
+    if($get){
+       
+    }
+    else{
+       
+    }
+}
+/////////// modificar aparato ///////////
 function modifDetalleAparato($datos,$id_cat){
     include "Conexion.php";
     $consulta = "update info_aparato set id_categoria=".$id_cat.", estado='".$datos['estado']."',descripcion='".$datos['descripcion']."' where id=".$datos['id'].";";
     $get = $db->query($consulta);
     if($get){
-       echo json_encode("exito");
+        $var="0";
+        $var =verifSameDate_Admin($datos); 
+        if($var=="0"){  // verifica si ya se habia modificado este aparato por el mismo administrador
+            updateAdminAparato($datos,$datos['id']);
+        }
+        echo json_encode("exito");
     }
     else{
         echo json_encode(mysqli_error($db));
     }
 }
+// funcion previa a modificar aparato
 function modifAparato($datos){
     $id_cat=$datos['categoria'];
     if($datos['categoria']=='0'){ // si es una  nueva categoria
@@ -485,8 +526,9 @@ function modifAparato($datos){
     }
     modifDetalleAparato($datos,$id_cat);
 }
+/////////////// fin modificar ///////////
 
-///// fin modificar / / // / 
+
 function getInfoAparato(){
     include "Conexion.php";
     $consulta = "select i.id,i.id_categoria,i.estado,i.descripcion,i2.nombre from info_aparato i inner join aparato i2 on i.id_categoria=i2.id;";
@@ -521,11 +563,15 @@ function insertarCat($dato){
 
 }
 function agregarDetalleMaquina($datos,$id_cat){
+    $id_aparato="0";
     include "Conexion.php";
     $consulta = "insert into info_aparato VALUES(NULL,".$id_cat.",'".$datos['estado']."','".$datos['descripcion']."');";
     $get = $db->query($consulta);
     if($get){
-       echo json_encode("exito");
+        
+        $id_aparato = mysqli_insert_id($db); //obtiene el ultimo registro insertado
+        updateAdminAparato($datos,$id_aparato);
+        echo json_encode("exito");
     }
     else{
         echo json_encode(mysqli_error($db));
@@ -536,8 +582,9 @@ function addMaquina($datos){
     if($datos['categoria']=='0'){ // si es una  nueva categoria
         $id_cat=insertarCat($datos['otro']);
     }
+    
     agregarDetalleMaquina($datos,$id_cat);
-
+    
 }
 
 function getCategorias(){
@@ -888,20 +935,42 @@ function setCol($datos)
     }
    
 }
-
-function login($datos){
+function getDataAdmin($datos){
     include "Conexion.php";
-    $f = "select id,user,password,tipo from access where user='".$datos['user']."' and password='".$datos['password']."';";
+    $f = "select * from empleado where id_acceso =".$datos['id_cuenta'].";";
     $d = $db->query($f);
     $var;
    
     if($d){
         if($res =mysqli_fetch_assoc($d)){
             $var = $res;
-            //$id_acceso=$tes['id'];
-           // if$var['tipo'=="2"]
-           // guncionx($id_accesso);
+            $var['tipo']=$datos['tipo'];
+            $var['user']=$datos['user'];
+            $var['password']=$datos['password'];
             echo json_encode($var);
+        }
+        else{
+            echo json_encode("-1");
+        }
+
+    }else{
+
+    }
+
+}
+function login($datos){
+    include "Conexion.php";
+    $f = "select id as id_cuenta,user,password,tipo from access where user='".$datos['user']."' and password='".$datos['password']."';";
+    $d = $db->query($f);
+    $var;
+   
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            $var = $res;
+            if($var['tipo']=="2"){
+                getDataAdmin($var);
+            }
+           // echo json_encode($var);
         }
         else{
             echo json_encode("-1");
