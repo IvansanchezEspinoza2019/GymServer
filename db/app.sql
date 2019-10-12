@@ -26,6 +26,15 @@ create table aparato(
     id INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(20)
 );
+CREATE TABLE info_aparato(
+    id INT PRIMARY KEY AUTO_INCREMENT,    
+    id_categoria INT,
+    estado CHAR,
+    descripcion VARCHAR(100),
+    FOREIGN KEY (id_categoria)
+    REFERENCES aparato(id)
+);
+
 
 create table proveedor(
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -126,13 +135,15 @@ CREATE TABLE cliente_paquete(
 );
 
 CREATE TABLE admin_aparato(
-    id INT PRIMARY KEY AUTO_INCREMENT,    
+    id INT PRIMARY KEY AUTO_INCREMENT,  
     id_aparato INT,
     FOREIGN KEY (id_aparato)
-    REFERENCES aparato(id),
+    REFERENCES info_aparato(id),
     id_admin INT,
     FOREIGN KEY (id_admin)
-    REFERENCES empleado(id_empleado)
+    REFERENCES empleado(id_empleado),
+    fecha DATE NOT NULL,
+    accion CHAR NOT NULL
 );
 
 
@@ -159,13 +170,5 @@ CREATE TABLE empleado_producto(
 );
 
 
-CREATE TABLE info_aparato(
-    id INT PRIMARY KEY AUTO_INCREMENT,    
-    id_categoria INT,
-    estado CHAR,
-    descripcion VARCHAR(100),
-    FOREIGN KEY (id_categoria)
-    REFERENCES aparato(id)
-);
 
 
