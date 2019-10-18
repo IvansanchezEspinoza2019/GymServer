@@ -143,10 +143,66 @@ switch($datos['funcion']){
     case 'asistencia':
         asistencia($datos);
         break;
+
+    //Historial
+    case 'getHistorial':
+        getHistorial();
+        break;
+
+
+    //Reportes
+    case 'getReportePagos':
+        getReportePagos();
+        break;
         
     default:
         echo json_encode("-1");
 }
+
+//// REPORTES ///////
+
+function getReportePagos(){
+    include "Conexion.php";
+    $f = "select i.id_pago,i.fecha_pago,i.fecha_vencimiento,i.id_cliente,i.id_paquete,i.monto,i.modo, CONCAT(i2.apellido_p,' ',i2.apellido_m,' ',i2.nombre) as Nombre, i3.nombre as paquete
+    from cliente_paquete i inner join cliente i2 on i.id_cliente=i2.id_cliente inner join paquete i3 on i.id_paquete=i3.id;";
+    $d = $db->query($f);
+    if($d){
+        $lista=array();
+        $registros=array();
+        while($registro = mysqli_fetch_assoc($d)):
+            $registros[]=$registro;
+        endwhile;
+        $lista['pagos']=$registros;
+        echo json_encode($lista);
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}
+
+/////////// funcion que obtiene el historial de modificaciones de aparatos  //////////////
+function getHistorial(){
+    include "Conexion.php";
+    $f = "select i.id_aparato,i.id_admin,i.fecha,i.accion,i2.id_categoria, i3.nombre,CONCAT(i4.apellido_p,' ',i4.apellido_m,' ',i4.nombre) as Nombre from admin_aparato i inner join info_aparato i2 on id_aparato=i2.id
+     inner join aparato i3 on i2.id_categoria=i3.id inner join empleado i4 on i.id_admin=i4.id_empleado;";
+    $d = $db->query($f);
+    if($d){
+        $lista=array();
+        $registros=array();
+        while($registro = mysqli_fetch_assoc($d)):
+            $registros[]=$registro;
+        endwhile;
+        $lista['historial']=$registros;
+        echo json_encode($lista);
+
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+
+}
+
+
 /////////////////   MODIFICAR EMPLEADO   ////////////////////////
 function insertModifEmpleado($datos1,$cp1,$col1,$accesso1,$puesto){
     include "Conexion.php";
