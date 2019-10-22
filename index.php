@@ -134,7 +134,6 @@ switch($datos['funcion']){
         modifEmpleado($datos);
         break;
 
-
     //ASISTENCIA
     case 'getAsistToday':
         getAsistToday($datos);
@@ -149,22 +148,96 @@ switch($datos['funcion']){
         getHistorial();
         break;
 
-
     //Reportes
     case 'getReportePagos':
-        getReportePagos();
+        getReportePagos($datos['dias']);
         break;
-        
+    case 'getReporteAsistencia':
+        getReporteAsistencia($datos['dias']);
+        break;
+    case 'getReportePagosRange':
+        getReportePagosRange($datos);
+        break;
+    case 'getReporteAsistenciasRange':
+        getReporteAsistenciasRange($datos);
+        break;
+
+    /// MODULO CLIENTE 
+    case 'customerAsist7':
+        customerAsist7($datos);
+        break;
+    case 'customerAsist15':
+        customerAsist15($datos);
+        break;
+    case 'customerAsist30':
+        customerAsist30($datos);
+        break;
+    case 'getCostumerPays':
+        getCostumerPays($datos);
+        break;
     default:
         echo json_encode("-1");
 }
 
-//// REPORTES ///////
 
-function getReportePagos(){
+///////         REPORTES         ///////
+/// OBTIENE TODOS LOS REGISTROS DENTRO DE UN RANGO    ////
+function getReporteAsistenciasRange($datos){
+    include "Conexion.php";
+    $f = "select i.id_fecha,i.id_cliente, CONCAT(i2.apellido_p,' ',i2.apellido_m,' ',i2.nombre) as Nombre, i3.fecha 
+    from asistencia i inner join cliente i2 on i.id_cliente=i2.id_cliente inner join fecha i3 on i.id_fecha=i3.id and i3.fecha between '".$datos['inicio']."' and '".$datos['fin']."';";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            $lista=array();
+            $registros=array();
+            $registros[]=$res;
+            while($registro = mysqli_fetch_assoc($d)):
+                $registros[]=$registro;
+            endwhile;
+            $lista['asistencias']=$registros;
+            echo json_encode($lista);
+        }
+        else{
+            echo json_encode("null");
+        }  
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}
+
+/// OBTIENE TODOS LOS REGISTROS DENTRO DE UN RANGO    ////
+function getReportePagosRange($datos){
     include "Conexion.php";
     $f = "select i.id_pago,i.fecha_pago,i.fecha_vencimiento,i.id_cliente,i.id_paquete,i.monto,i.modo, CONCAT(i2.apellido_p,' ',i2.apellido_m,' ',i2.nombre) as Nombre, i3.nombre as paquete
-    from cliente_paquete i inner join cliente i2 on i.id_cliente=i2.id_cliente inner join paquete i3 on i.id_paquete=i3.id;";
+    from cliente_paquete i inner join cliente i2 on i.id_cliente=i2.id_cliente inner join paquete i3 on i.id_paquete=i3.id and i.fecha_pago between '".$datos['inicio']."' and '".$datos['fin']."';";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            $lista=array();
+            $registros=array();
+            $registros[]=$res;
+            while($registro = mysqli_fetch_assoc($d)):
+                $registros[]=$registro;
+            endwhile;
+            $lista['pagos']=$registros;
+            echo json_encode($lista);
+        }
+        else{
+            echo json_encode("null");
+        }  
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}
+
+/// OBTIENE TODOS LOS REGISTROS DE PAGOS    ////
+function getReportePagos($dias){
+    include "Conexion.php";
+    $f = "select i.id_pago,i.fecha_pago,i.fecha_vencimiento,i.id_cliente,i.id_paquete,i.monto,i.modo, CONCAT(i2.apellido_p,' ',i2.apellido_m,' ',i2.nombre) as Nombre, i3.nombre as paquete
+    from cliente_paquete i inner join cliente i2 on i.id_cliente=i2.id_cliente inner join paquete i3 on i.id_paquete=i3.id and i.fecha_pago between date_sub(curdate(), interval ".$dias." day) and curdate();";
     $d = $db->query($f);
     if($d){
         $lista=array();
@@ -179,6 +252,29 @@ function getReportePagos(){
         echo json_encode(mysqli_error($db));   // responde un mensaje de error
     }
 }
+
+/// OBTIENE TODOS LOS REGISTROS DE ASISTENCIAS    ////
+function getReporteAsistencia($dias){
+    include "Conexion.php";
+    $f = "select i.id_fecha,i.id_cliente, CONCAT(i2.apellido_p,' ',i2.apellido_m,' ',i2.nombre) as Nombre, i3.fecha 
+    from asistencia i inner join cliente i2 on i.id_cliente=i2.id_cliente inner join fecha i3 on i.id_fecha=i3.id and i3.fecha between date_sub(curdate(), interval ".$dias." day) and curdate();";
+    $d = $db->query($f);
+    if($d){
+        $lista=array();
+        $registros=array();
+        while($registro = mysqli_fetch_assoc($d)):
+            $registros[]=$registro;
+        endwhile;
+        $lista['asistencias']=$registros;
+        echo json_encode($lista);
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}
+
+
+//////////////////   FIN REPORTES   ////////////////////////////
 
 /////////// funcion que obtiene el historial de modificaciones de aparatos  //////////////
 function getHistorial(){
@@ -1014,6 +1110,31 @@ function getDataAdmin($datos){
     }
 
 }
+function getDataClient($datos){
+    include "Conexion.php";
+   
+    $consulta = "select id_cliente, colonia.nombre, codigo, calle, numero_calle, numero_interior, genero,
+     telefono, fecha_ingreso, fecha_nacimiento, numero_interior, activo, ultimo_pago,
+      concat (cliente.nombre, ' ', apellido_p, ' ', apellido_m) as name from cliente inner join colonia on cliente.id_colonia = colonia.id
+       inner join cp on cliente.id_cp = cp.id where id_access='".$datos['id_cuenta']."';";
+    $get = $db->query($consulta);
+    if($get){
+        if($res =mysqli_fetch_assoc($get)){
+            $var = $res;
+            $var['tipo']=$datos['tipo'];
+            $var['user']=$datos['user'];
+            $var['password']=$datos['password'];
+            echo json_encode($var);
+        }
+        else{
+            echo json_encode("-1");
+        }
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+
+}
 function login($datos){
     include "Conexion.php";
     $f = "select id as id_cuenta,user,password,tipo from access where user='".$datos['user']."' and password='".$datos['password']."';";
@@ -1025,6 +1146,9 @@ function login($datos){
             $var = $res;
             if($var['tipo']=="2"){
                 getDataAdmin($var);
+            }
+            if($var['tipo']=='1'){
+                getDataClient($var);
             }
            // echo json_encode($var);
         }
@@ -1669,4 +1793,85 @@ function getAsistToday(){
 }
 
 //FIN ASISTENCIA
+
+///////////////////////////// MODULO CLIENTE 
+function getCostumerPays($datos){
+    include "Conexion.php";
+        
+    $consulta = "Select * from cliente_paquete inner join paquete on cliente_paquete.id_paquete = paquete.id where id_cliente = '".$datos['id']."';";
+    $get = $db->query($consulta);
+    if($get){
+        $pagos=array();
+        $pagos2=array();
+        
+        while($res = mysqli_fetch_assoc($get)):
+            $pagos2[]=$res;
+        endwhile;
+        $pagos['pagos']=$pagos2;
+        echo json_encode($pagos);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+function customerAsist7($datos){
+    include "Conexion.php";
+
+    $consulta = "select * from asistencia inner join fecha on asistencia.id_fecha = fecha.id where id_cliente = '".$datos['id']."' and fecha.fecha between date_sub(curdate(), interval 7 day) and curdate();";
+    $get = $db->query($consulta);
+    if($get){
+        $asistencia=array();
+        $asistencia2=array();
+        
+        while($res = mysqli_fetch_assoc($get)):
+            $asistencia2[]=$res;
+        endwhile;
+        $asistencia['asistencia']=$asistencia2;
+        echo json_encode($asistencia);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+function customerAsist15($datos){
+    include "Conexion.php";
+
+    $consulta = "select * from asistencia inner join fecha on asistencia.id_fecha = fecha.id where id_cliente = '".$datos['id']."' and fecha.fecha between date_sub(curdate(), interval 15 day) and curdate();";
+    $get = $db->query($consulta);
+    if($get){
+        $asistencia=array();
+        $asistencia2=array();
+        
+        while($res = mysqli_fetch_assoc($get)):
+            $asistencia2[]=$res;
+        endwhile;
+        $asistencia['asistencia']=$asistencia2;
+        echo json_encode($asistencia);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+function customerAsist30($datos){
+    include "Conexion.php";
+
+    $consulta = "select * from asistencia inner join fecha on asistencia.id_fecha = fecha.id where id_cliente = '".$datos['id']."' and fecha.fecha between date_sub(curdate(), interval 30 day) and curdate();";
+    $get = $db->query($consulta);
+    if($get){
+        $asistencia=array();
+        $asistencia2=array();
+        
+        while($res = mysqli_fetch_assoc($get)):
+            $asistencia2[]=$res;
+        endwhile;
+        $asistencia['asistencia']=$asistencia2;
+        echo json_encode($asistencia);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
 ?>
