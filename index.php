@@ -175,12 +175,178 @@ switch($datos['funcion']){
     case 'getCostumerPays':
         getCostumerPays($datos);
         break;
+    
+    // TIENDA  //
+    case 'getProductosProveedores':
+        getProductosProveedores();
+        break;
+    case 'addProducto':
+        addProducto($datos);
+        break;
+    case 'modifProducto':
+        modifProducto($datos);
+        break;
     default:
         echo json_encode("-1");
 }
 
+/////////////////////////// TIENDA /////////////////////////
 
-///////         REPORTES         ///////
+///// MODIFICAR PRODUCTO  ////
+/// verifica si el nuevo nombre ya está asignado a otro producto //
+function verifNameProduct($datos){
+    include "Conexion.php";
+    $f="select * from producto where nombre='".$datos['nuevo_producto']."' and id_producto!=".$datos['producto'].";";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            return "1";   // existe otro producto con el mismo nombre
+        }else{
+            return "0"; // no existe ese producto
+        }
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+
+}
+// inserta modificacion //
+function insertModif($datos,$id_prov){
+    include "Conexion.php";
+    $f="update producto set nombre='".$datos['nuevo_producto']."', descripcion='".$datos['descripcion']."', precio_entrada=".$datos['precio_entrada'].",
+     precio_salida=".$datos['precio_salida'].", disponibles=".$datos['cantidad'].", id_proveedor=".$id_prov." where id_producto=".$datos['producto'].";";
+    $d = $db->query($f);
+    if($d){
+        echo json_encode("exito");
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+// funcion modificar
+function modifProducto($datos){
+    $verif_product= verifNameProduct($datos); // verifica si el nombre le podría pertenecer a otro producto
+    if($verif_product == "0"){   // si no 
+        $id_prov= getIdProveedor($datos); // obtiene el id del proveedor
+        if($id_prov=="0"){ // no existe proveedor
+            $id_prov=insertProveedor($datos);  // lo inserta y recupera su llave
+        }
+       insertModif($datos,$id_prov);   // actualiza los nuevos datos
+    }else{
+        echo json_encode("product_rep"); //mensaje de error, nombre repetido de productos
+    }
+}
+////// FIN MODIFICAR PRODUCTO ///
+
+
+////AGREGAR PRODUCTO //////////
+// Inserta un nuevo producto al sistema //
+function insertarNuevoProducto($datos,$id_prov){
+    include "Conexion.php";
+    $f="insert into producto values(NULL,'".$datos['nuevo_producto']."','".$datos['descripcion']."',".$datos['precio_entrada'].",".$datos['precio_salida'].",'".$datos['cantidad']."',".$id_prov.");";
+    $d = $db->query($f);
+    if($d){
+        echo json_encode("exito");
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+// verifica si existe el proveedor que se le envia por parámetro
+function getIdProveedor($datos){
+    include "Conexion.php";
+    $f="select id from proveedor where nombre='".$datos['proveedor']."';";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            return $res['id'];
+        }else{
+            return "0";
+        }
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+// inserta un nuevo proveedor al sistema
+function insertProveedor($datos){
+    include "Conexion.php";
+    $f="insert into proveedor values(NULL,'".$datos['proveedor']."');";
+    $d = $db->query($f);
+    if($d){
+        return mysqli_insert_id($db);
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+// suma la cantidad de un producto existente con la cantidad actual
+function sumaCantidad($datos){
+    include "Conexion.php";
+    $f="update producto set disponibles = disponibles +".$datos['cantidad']." where id_producto =".$datos['producto'].";";
+    $d = $db->query($f);
+    if($d){
+       echo json_encode("exito");
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+// verifica si ya existe el producto en el sistema
+function verifExisteProducto($datos){
+    include "Conexion.php";
+    $f="select * from producto where nombre ='".$datos['nuevo_producto']."';";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            return "-1";// ya existe un producto con ese nombre
+        }else{
+            return "0"; // no existe ese producto
+        }  
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+       
+}
+function addProducto($datos){
+    if($datos['producto']=='0'){ // si es un  nuevo producto
+        $existe =verifExisteProducto($datos);
+        if($existe=="0"){  // verifica si ya existe el producto en el sistema
+            $id_proveedor=getIdProveedor($datos); // verifica si existe proveedor, 0=NO
+            if($id_proveedor=="0"){ // si no existe, lo inserta
+                $id_proveedor = insertProveedor($datos);
+            }
+            insertarNuevoProducto($datos,$id_proveedor); // inserta un nuevo producto
+        }
+        else{
+            echo json_encode("product_rep"); // producto repetido
+        }
+    }else{ /// si ya existe ese producto
+        sumaCantidad($datos);  // le suma la  cantidad nueva a la cantidad  existente
+    }
+}
+////// FIN AGREGAR PRODUCTO  ////
+
+// OBTIENE DATOS DE PRODUCTOS  //
+function getProductosProveedores(){
+    include "Conexion.php";
+    $f="select id_producto as id,nombre from producto;";
+    $d = $db->query($f);
+
+    if($d){
+        $lista=array();
+        $registros=array();
+        
+        while($registro = mysqli_fetch_assoc($d)):
+            $registros[]=$registro;
+        endwhile;
+        $lista['productos']=$registros;
+        echo json_encode($lista);
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+
+//// FIN TIENDA ///
+
+/////// /////////////////////   REPORTES         ///////
 /// OBTIENE TODOS LOS REGISTROS DENTRO DE UN RANGO    ////
 function getReporteAsistenciasRange($datos){
     include "Conexion.php";
