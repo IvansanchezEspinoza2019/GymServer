@@ -154,7 +154,8 @@ CREATE TABLE producto(
     precio_entrada FLOAT NOT NULL,
     precio_salida FLOAT NOT NULL,
     disponibles INT NOT NULL,
-    id_proveedor INT,
+    id_proveedor INT NOT NULL,
+    activo BOOLEAN,
     FOREIGN KEY (id_proveedor)
     REFERENCES proveedor(id)
 );
@@ -165,6 +166,10 @@ CREATE TABLE empleado_producto(
     FOREIGN KEY (id_empleado)
     REFERENCES empleado(id_empleado),
     id_producto INT,
+    cantidad INT noT NULL,
+    fecha DATE NOT NULL,
+    total FLOAT NOT NULL,
+
     FOREIGN KEY (id_producto)
     REFERENCES producto(id_producto)
 );

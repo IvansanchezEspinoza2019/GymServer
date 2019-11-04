@@ -186,11 +186,137 @@ switch($datos['funcion']){
     case 'modifProducto':
         modifProducto($datos);
         break;
+    //////// COMPRA   /////
+    case 'getProductosActivos':
+        getProductosActivos();
+        break;
+        
+    case 'comprar':
+       comprar($datos);
+       break;
+    //NEW
+    case 'getAllProducts':
+        getAllProducts();
+        break;
+    case 'eliminarProducto':
+        eliminarProducto($datos);
+        break;
+    case 'activarProducto':
+        activarProducto($datos);
+        break;
     default:
         echo json_encode("-1");
 }
 
+
+//NEW
+function getAllProducts(){
+    include "Conexion.php";
+        
+    $consulta = "select i.id_producto,i.nombre,i.descripcion,i.precio_entrada,i.precio_salida,i.activo,i.disponibles as cantidad,i.id_proveedor, i2.nombre as proveedor
+    from producto i inner join proveedor i2 on i.id_proveedor=i2.id;";
+    $get = $db->query($consulta);
+    if($get){
+        $products=array();
+        $products2=array();
+
+        while($res = mysqli_fetch_assoc($get)):    
+            $products2[]=$res;
+        endwhile;
+        $products['products']=$products2;
+        echo json_encode($products);
+    }
+    else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+function eliminarProducto($datos){
+    include "Conexion.php";
+    $elimination= "0";
+    $consulta = "update producto set activo=".$elimination." where id_producto = ".$datos['id_producto']." ;";
+    $elim = $db->query($consulta);
+    if($elim){
+        echo json_encode("exito");
+    }else{
+        echo json_encode("-1");
+    }
+}
+
+function activarProducto($datos){
+    include "Conexion.php";
+    $elimination= "1";
+    $consulta = "update producto set activo=".$elimination." where id_producto = ".$datos['id_producto']." ;";
+    $elim = $db->query($consulta);
+    if($elim){
+        echo json_encode("exito");
+    }else{
+        echo json_encode("-1");
+    }
+}
+//FIN NEW
+
 /////////////////////////// TIENDA /////////////////////////
+
+//////////////// COMPRA   ///////////////////
+function comprar($datos){
+
+    $id_admin=$datos['id_admin'];                                               // obtiene el id del admin
+
+    foreach($datos['productos'] as $value){                                     // recorre el arreglo
+         insertarRegistroCompra($value,$id_admin);                               // inserta registro de compra
+         actualizarDisponibles($value['id_producto'],$value['cantidad']);        // actualiza disponibilidad de productos
+    }
+
+    getProductosActivos();
+}
+
+/// FUNCION INSERTAR REGISTROS DE COMPRA /////
+function insertarRegistroCompra($datos,$id_admin){
+    include "Conexion.php";
+    $f="insert into empleado_producto values(NULL,".$id_admin.",".$datos['id_producto'].",".$datos['cantidad'].",CURDATE(),".$datos['subtotal'].");";
+    $d = $db->query($f);
+    if($d){
+       
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+
+/////// ACTUALIZAR EXISTENCIA PRODUCTOS //////
+function actualizarDisponibles($id_p,$cantidad){
+    include "Conexion.php";
+    $f="update producto set disponibles = disponibles - ".$cantidad." where id_producto=".$id_p.";";
+    $d = $db->query($f);
+    if($d){
+       
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+
+
+////OBTIENE TODOS LOS PRODUCTOS ACTIVOS Y QUE TENGAN EXISTENCIA   ///
+function getProductosActivos(){
+    include "Conexion.php";
+    $f="select * from producto where activo=1 and disponibles > 0;";
+    $d = $db->query($f);
+
+    if($d){
+        $lista=array();
+        $registros=array();
+        
+        while($registro = mysqli_fetch_assoc($d)):
+            $registros[]=$registro;
+        endwhile;
+        $lista['productos']=$registros;
+        echo json_encode($lista);
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
+//////////// FIN COMPRA /////////////
 
 ///// MODIFICAR PRODUCTO  ////
 /// verifica si el nuevo nombre ya está asignado a otro producto //
@@ -242,7 +368,7 @@ function modifProducto($datos){
 // Inserta un nuevo producto al sistema //
 function insertarNuevoProducto($datos,$id_prov){
     include "Conexion.php";
-    $f="insert into producto values(NULL,'".$datos['nuevo_producto']."','".$datos['descripcion']."',".$datos['precio_entrada'].",".$datos['precio_salida'].",'".$datos['cantidad']."',".$id_prov.");";
+    $f="insert into producto values(NULL,'".$datos['nuevo_producto']."','".$datos['descripcion']."',".$datos['precio_entrada'].",".$datos['precio_salida'].",'".$datos['cantidad']."',".$id_prov.",1);";
     $d = $db->query($f);
     if($d){
         echo json_encode("exito");
@@ -343,10 +469,10 @@ function getProductosProveedores(){
     }
 }
 
+/////////////////////////////   FIN TIENDA      //////////////////////
 
-//// FIN TIENDA ///
 
-/////// /////////////////////   REPORTES         ///////
+/////// /////////////////////   REPORTES         //////////////////
 /// OBTIENE TODOS LOS REGISTROS DENTRO DE UN RANGO    ////
 function getReporteAsistenciasRange($datos){
     include "Conexion.php";
@@ -1255,7 +1381,7 @@ function setCol($datos)
 }
 function getDataAdmin($datos){
     include "Conexion.php";
-    $f = "select * from empleado where id_acceso =".$datos['id_cuenta'].";";
+    $f = "select *, concat (nombre, ' ', apellido_p, ' ', apellido_m) as name from empleado inner join puesto on empleado.id_puesto = puesto.id where id_acceso = '".$datos['id_cuenta']."';";
     $d = $db->query($f);
     $var;
    
@@ -1716,11 +1842,15 @@ function addCambioPack($datos){
         echo json_encode("Duracion Invalida");
     }
     
-    else{
+    else if ($validation == "0"){
         insertEditPaquete($datos);
     }
+    
+    else{
+        echo json_encode("Nombre Invalido");
+    }
 }
-
+//MODIFICACIONES
 function insertEditPaquete($datos1){
     include "Conexion.php";
    $f = "update paquete set nombre = '".$datos1['nombre']."', descripcion = '".$datos1['descripcion']."', precio = '".$datos1['precio']."', duracion = '".$datos1['duracion']."',activo = '1' where id = '".$datos1['id']."';";
