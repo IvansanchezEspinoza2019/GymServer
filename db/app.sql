@@ -168,7 +168,8 @@ CREATE TABLE empleado_producto(
     id_producto INT,
     cantidad INT noT NULL,
     fecha DATE NOT NULL,
-    total FLOAT NOT NULL,
+    p_v FLOAT NOT NULL,
+    p_c FLOAT NOT NULL,
 
     FOREIGN KEY (id_producto)
     REFERENCES producto(id_producto)

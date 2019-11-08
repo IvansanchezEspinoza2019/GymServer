@@ -155,12 +155,19 @@ switch($datos['funcion']){
     case 'getReporteAsistencia':
         getReporteAsistencia($datos['dias']);
         break;
+    case 'getReporteVenta':
+        getReporteVenta($datos['dias']);
+        break;
     case 'getReportePagosRange':
         getReportePagosRange($datos);
         break;
     case 'getReporteAsistenciasRange':
         getReporteAsistenciasRange($datos);
         break;
+    case 'getReporteVentasRange':
+        getReporteVentasRange($datos);
+        break;
+    
 
     /// MODULO CLIENTE 
     case 'customerAsist7':
@@ -274,7 +281,7 @@ function comprar($datos){
 /// FUNCION INSERTAR REGISTROS DE COMPRA /////
 function insertarRegistroCompra($datos,$id_admin){
     include "Conexion.php";
-    $f="insert into empleado_producto values(NULL,".$id_admin.",".$datos['id_producto'].",".$datos['cantidad'].",CURDATE(),".$datos['subtotal'].");";
+    $f="insert into empleado_producto values(NULL,".$id_admin.",".$datos['id_producto'].",".$datos['cantidad'].",CURDATE(),".$datos['p_v'].",".$datos['p_c'].");";
     $d = $db->query($f);
     if($d){
        
@@ -472,7 +479,32 @@ function getProductosProveedores(){
 /////////////////////////////   FIN TIENDA      //////////////////////
 
 
-/////// /////////////////////   REPORTES         //////////////////
+/////// /////////////////////   REPORTES         /////////////////////
+function getReporteVentasRange($datos){
+    include "Conexion.php";
+    $f = "select i.id, i.fecha, i.id_empleado, i.id_producto, i.cantidad, i.p_c, i.p_v, i2.nombre
+    from empleado_producto i inner join producto i2 on i.id_producto=i2.id_producto  and i.fecha between '".$datos['inicio']."' and '".$datos['fin']."';";
+    $d = $db->query($f);
+    if($d){
+        if($res = mysqli_fetch_assoc($d)){
+            $lista=array();
+            $registros=array();
+            $registros[]=$res;
+            while($registro = mysqli_fetch_assoc($d)):
+                $registros[]=$registro;
+            endwhile;
+            $lista['ventas']=$registros;
+            echo json_encode($lista);
+        }
+        else{
+            echo json_encode("null");
+        }  
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+}
+
 /// OBTIENE TODOS LOS REGISTROS DENTRO DE UN RANGO    ////
 function getReporteAsistenciasRange($datos){
     include "Conexion.php";
@@ -526,6 +558,27 @@ function getReportePagosRange($datos){
 }
 
 /// OBTIENE TODOS LOS REGISTROS DE PAGOS    ////
+
+function getReporteVenta($dias){
+    include "Conexion.php";
+    $f = "select i.id, i.fecha, i.id_empleado, i.id_producto, i.cantidad, i.p_c, i.p_v, i2.nombre
+    from empleado_producto i inner join producto i2 on i.id_producto=i2.id_producto  and i.fecha between date_sub(curdate(), interval ".$dias." day) and curdate();";
+    $d = $db->query($f);
+    if($d){
+        $lista=array();
+        $registros=array();
+        while($registro = mysqli_fetch_assoc($d)):
+            $registros[]=$registro;
+        endwhile;
+        $lista['ventas']=$registros;
+        echo json_encode($lista);
+    }
+    else{
+        echo json_encode(mysqli_error($db));   // responde un mensaje de error
+    }
+
+}
+
 function getReportePagos($dias){
     include "Conexion.php";
     $f = "select i.id_pago,i.fecha_pago,i.fecha_vencimiento,i.id_cliente,i.id_paquete,i.monto,i.modo, CONCAT(i2.apellido_p,' ',i2.apellido_m,' ',i2.nombre) as Nombre, i3.nombre as paquete
