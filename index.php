@@ -849,7 +849,7 @@ function activarEmpleado($datos){
 function getAllEmployees($datos){
     include "Conexion.php";
     $consulta = "Select i.id_empleado,i.nombre,i.apellido_p,i.apellido_m,i.foto,i.calle,i.numero_calle,i.telefono,i.fecha_nacimiento,
-    i.fecha_ingreso,i.id_cp,id_colonia,i.id_acceso,i.id_puesto,i.activo,i.numero_interior,i.genero,CONCAT(i.apellido_p,' ',i.apellido_m,' ',i.nombre) as Nombre
+    i.fecha_ingreso,i.id_cp,i.id_colonia,i.id_acceso,i.id_puesto,i.activo,i.numero_interior,i.genero,CONCAT(i.apellido_p,' ',i.apellido_m,' ',i.nombre) as Nombre
     ,i3.codigo,i4.nombre as colonia,i5.id as id_puesto,i5.puesto,i5.sueldo from empleado i inner join cp i3 on i.id_cp=i3.id inner join colonia i4 on i.id_colonia=i4.id inner join puesto i5 on i.id_puesto=i5.id;";
     $get = $db->query($consulta);
     if($get){
@@ -1253,40 +1253,30 @@ function fileExists3($datos) {
     }
 
 } 
-function getForeignData($datos){
+
+/////////////// NUEVA FUNCION   ///////////////////
+function getAllCustomers(){
     include "Conexion.php";
-    $consulta = "select user from access where id=".$datos['id_access']." Union select nombre from colonia where id=".$datos['id_col']." Union select codigo from cp where id=".$datos['id_cp'].";";
+    $consulta = "Select i.id_cliente,i.nombre,i.apellido_p,i.apellido_m,i.foto,i.calle,i.numero_calle,i.telefono,i.fecha_nacimiento,
+    i.fecha_ingreso,i.id_cp,i.id_colonia,i.id_access,i.activo,i.numero_interior,i.genero,CONCAT(i.apellido_p,' ',i.apellido_m,' ',i.nombre) as Nombre,
+    i3.codigo,i4.nombre as colonia, i5.id, i5.user, i5.password from cliente i inner join cp i3 on i.id_cp=i3.id inner join colonia i4 on i.id_colonia=i4.id inner join access i5 on i.id_access=i5.id;";
     $get = $db->query($consulta);
     if($get){
-        $data= array();
+        $empleados=array();
+        $resultado=array();
+        
         while($res = mysqli_fetch_assoc($get)):
-            $data[]=$res;
+            $resultado[]=$res;
         endwhile;
-        echo json_encode($data);
+        $empleados['clientes']=$resultado;
+        echo json_encode($empleados);
     }
     else{
         echo json_encode(mysqli_error($db));
     }
 }
 
-function getAllCustomers(){
-    include "Conexion.php";
-    $consulta = "Select id_cliente,foto,calle,numero_calle,telefono,fecha_nacimiento,fecha_ingreso,id_cp,id_colonia,id_access,activo,numero_interior,genero,CONCAT(apellido_p,' ',apellido_m,' ',nombre) as Nombre from cliente;";
-    $get = $db->query($consulta);
-    if($get){
-        $clientes=array();
-        $clientes2=array();
-        
-        while($res = mysqli_fetch_assoc($get)):
-            $clientes2[]=$res;
-        endwhile;
-        $clientes['clientes']=$clientes2;
-        echo json_encode($clientes);
-    }
-    else{
-        echo json_encode(mysqli_error($db));
-    }
-}
+
 function insertCliente($datos1,$cp1,$col1,$accesso1)
 {
     include "Conexion.php";
