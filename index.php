@@ -26,9 +26,6 @@ switch($datos['funcion']){
     case 'getAllCustomers':
         getAllCustomers();
         break;
-    case 'getForeignData':
-        getForeignData($datos);
-        break;
     case 'existImg':
         fileExists2($datos);
         break;
