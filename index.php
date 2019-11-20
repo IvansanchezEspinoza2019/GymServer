@@ -1662,7 +1662,11 @@ function getValidUser($datos){
 function getAllPays(){
     include "Conexion.php";
         
-    $consulta = "Select id_pago, fecha_pago, fecha_vencimiento, id_cliente, id_paquete, monto,modo from cliente_paquete;";
+    $consulta = "select cliente.id_cliente, concat (cliente.nombre, ' ', cliente.apellido_p, ' ', apellido_m) as name, cliente.telefono, 
+    cliente.numero_calle, cliente.numero_interior, cliente.calle, colonia.nombre, cp.codigo, paquete.nombre as pack, paquete.duracion, paquete.precio,
+    paquete.id, cliente_paquete.id_pago, cliente_paquete.fecha_pago, cliente_paquete.fecha_vencimiento, cliente_paquete.monto, cliente_paquete.modo 
+    from cliente_paquete inner join cliente on cliente_paquete.id_cliente = cliente.id_cliente inner join paquete on cliente_paquete.id_paquete = paquete.id 
+    inner join colonia on cliente.id_colonia = colonia.id inner join cp on cliente.id_cp = cp.id;";
     $get = $db->query($consulta);
     if($get){
         $pagos=array();
@@ -1679,10 +1683,11 @@ function getAllPays(){
     }
 }
 
+
 function eliminarPago($datos){
     include "Conexion.php";
     $elimination= "0";
-    $consulta = "update cliente_paquete set monto=".$elimination.", fecha_vencimiento= null where id_pago=".$datos['id_pago'].";";
+    $consulta = "update cliente_paquete set monto=".$elimination." where id_pago=".$datos['id_pago'].";";
     $elim = $db->query($consulta);
     if($elim){
         echo json_encode("exito");
@@ -1690,6 +1695,7 @@ function eliminarPago($datos){
         echo json_encode("-1");
     }
 }
+
 
 function addCambioPago($datos){
     $validation = getPack($datos);
