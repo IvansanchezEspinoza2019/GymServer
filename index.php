@@ -621,7 +621,7 @@ function getReporteAsistencia($dias){
 /////////// funcion que obtiene el historial de modificaciones de aparatos  //////////////
 function getHistorial(){
     include "Conexion.php";
-    $f = "select i.id_aparato,i.id_admin,i.fecha,i.accion,i2.id_categoria, i3.nombre,CONCAT(i4.apellido_p,' ',i4.apellido_m,' ',i4.nombre) as Nombre from admin_aparato i inner join info_aparato i2 on id_aparato=i2.id
+    $f = "select i.id_aparato,i.id_admin,i.fecha,i.accion,i2.id_categoria,i2.descripcion, i3.nombre,CONCAT(i4.apellido_p,' ',i4.apellido_m,' ',i4.nombre) as Nombre from admin_aparato i inner join info_aparato i2 on id_aparato=i2.id
      inner join aparato i3 on i2.id_categoria=i3.id inner join empleado i4 on i.id_admin=i4.id_empleado;";
     $d = $db->query($f);
     if($d){
@@ -754,6 +754,7 @@ function modifEmpleado($datos){
                 }
             }elseif($verif_user=="0"){           // si no cambio su usuario(ya tenia cuenta previa), es decir si es el mismo usuario
                 //actualiza
+                actPassword($datos['password'],$datos['id_access']);  // actualiza la contraseña siendo el mismo usuario
                 actualizarEmpleado($datos);/// llama a la funcion que actualiza los datos
             }
         }
@@ -791,6 +792,17 @@ function modifEmpleado($datos){
 
 /////////////   FIN MODIFICAR EMPLEADO   ///////////////////////
 
+/////////// FUNCION QUE ACTUALIZA LA CONTRASEÑA DE CLIENTES Y EMPLEADOS ////
+function actPassword($password,$id_access){
+    include "Conexion.php";
+    $consulta = "update access set password='".$password."' where id=".$id_access.";";
+    $get = $db->query($consulta);
+    if($get){
+        
+    }else{
+        echo json_encode(mysqli_error($db));
+    }
+}
 
 
 
@@ -1208,8 +1220,8 @@ function getForeignDataModif($datos){
         echo json_encode(mysqli_error($db));
     }
 
-
 }
+
 function eliminarCliente($datos){
     include "Conexion.php";
     $consulta = "update cliente set activo=0 where id_cliente=".$datos['id_cliente'].";";
