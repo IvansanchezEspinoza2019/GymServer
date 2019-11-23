@@ -110,6 +110,10 @@ switch($datos['funcion']){
     case 'addCambioPack':
         addCambioPack($datos);
         break;
+    case 'addCambioPack2':
+        addCambioPack2($datos);
+        break;
+    
 
     // empleado
     case 'addEmpleado':
@@ -1892,8 +1896,9 @@ function activarPaquete($datos){
         echo json_encode("-1");
     }
 }
+//-------------------------FUNCION NUEVA---------------------------
 
-function addCambioPack($datos){   
+function addCambioPack2($datos){   
     $validation = getNamePack($datos);
 
     if($datos['duracion'] > 365){
@@ -1907,6 +1912,20 @@ function addCambioPack($datos){
     else{
         echo json_encode("Nombre Invalido");
     }
+}
+
+
+// funcion modificada
+function addCambioPack($datos){   
+
+    if($datos['duracion'] > 365){
+        echo json_encode("Duracion Invalida");
+    }
+    
+    else{
+        insertEditPaquete($datos);
+    }
+
 }
 //MODIFICACIONES
 function insertEditPaquete($datos1){
